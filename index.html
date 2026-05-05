@@ -1,0 +1,505 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Amazon Keyword Search Generator | Professional Keyword Tool</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            color: #1a1a2e;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 20px 35px -10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            padding: 20px 30px 35px;
+        }
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 600;
+            margin: 0 0 5px;
+            background: linear-gradient(135deg, #ff9900, #ff5500);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .sub {
+            color: #4b5563;
+            border-left: 4px solid #ff9900;
+            padding-left: 15px;
+            margin: 10px 0 25px;
+            font-size: 0.95rem;
+        }
+        .search-area {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 24px;
+            margin-bottom: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+        }
+        .input-group {
+            flex: 3;
+            min-width: 200px;
+        }
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            color: #374151;
+        }
+        #input {
+            width: 100%;
+            padding: 14px 18px;
+            font-size: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 60px;
+            transition: 0.2s;
+            background: white;
+            font-family: inherit;
+        }
+        #input:focus {
+            border-color: #ff9900;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255,153,0,0.2);
+        }
+        .actions {
+            flex: 1;
+            display: flex;
+            gap: 12px;
+        }
+        button {
+            background: #ff9900;
+            border: none;
+            padding: 12px 22px;
+            font-weight: bold;
+            font-size: 1rem;
+            border-radius: 60px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: inherit;
+            color: #1e1e2a;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        button#generateBtn {
+            background: #ff9900;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        button#stopBtn {
+            background: #4b5563;
+            color: white;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            filter: brightness(0.96);
+        }
+        button:disabled {
+            opacity: 0.6;
+            transform: none;
+            cursor: not-allowed;
+        }
+        .progress-area {
+            background: #eef2ff;
+            border-radius: 40px;
+            padding: 12px 18px;
+            margin-bottom: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 0.9rem;
+        }
+        .status-badge {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,0.1);
+            border-top-color: #ff9900;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .progress-text {
+            font-family: monospace;
+            background: white;
+            padding: 4px 10px;
+            border-radius: 30px;
+        }
+        #resultsCount {
+            font-weight: bold;
+            color: #ff5500;
+        }
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 18px;
+        }
+        .keyword-card {
+            background: white;
+            border-radius: 20px;
+            border: 1px solid #eef2ff;
+            overflow: hidden;
+            transition: all 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+        }
+        .keyword-card:hover {
+            border-color: #ffcc88;
+            box-shadow: 0 12px 20px -12px rgba(0,0,0,0.15);
+        }
+        .card-header {
+            background: #fef9e6;
+            padding: 10px 16px;
+            font-weight: 700;
+            font-size: 1.05rem;
+            border-bottom: 1px solid #ffe6b3;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-header span:first-child {
+            color: #b45f06;
+        }
+        .badge-count {
+            background: #ff9900;
+            color: #2c2c2c;
+            border-radius: 40px;
+            padding: 2px 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .suggestions-list {
+            list-style: none;
+            margin: 0;
+            padding: 8px 0;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+        .suggestions-list li {
+            padding: 8px 16px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .suggestions-list li a {
+            text-decoration: none;
+            color: #1f2937;
+            font-weight: 500;
+            display: block;
+            transition: 0.1s;
+        }
+        .suggestions-list li a:hover {
+            color: #ff9900;
+            transform: translateX(4px);
+            display: inline-block;
+        }
+        .error-msg {
+            background: #fee2e2;
+            color: #b91c1c;
+            padding: 10px;
+            border-radius: 16px;
+            text-align: center;
+            margin-top: 8px;
+            font-size: 0.8rem;
+        }
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #6c757d;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 20px;
+        }
+        @media (max-width: 720px) {
+            .container { padding: 15px; }
+            .search-area { flex-direction: column; align-items: stretch; }
+            .actions { justify-content: stretch; }
+            button { justify-content: center; }
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="container">
+    <h1>🔍 Amazon Keyword Search Generator</h1>
+    <div class="sub">✨ احصل على اقتراحات الكلمات من Amazon نفسها + رابط مباشر لنتائج البحث لمراقبة المنافسين</div>
+    
+    <div class="search-area">
+        <div class="input-group">
+            <label>📌 الكلمة الرئيسية (مثال: t shirt, yoga mat, baby toy)</label>
+            <input type="text" id="input" placeholder="مثال: t shirt" value="t shirt">
+        </div>
+        <div class="actions">
+            <button id="generateBtn">🚀 Generate Keywords</button>
+            <button id="stopBtn" disabled>⏹️ Stop</button>
+        </div>
+    </div>
+    
+    <div class="progress-area" id="progressArea" style="display: none;">
+        <div class="status-badge"><div class="spinner"></div> <span id="statusMsg">جاري توليد الكلمات...</span></div>
+        <div><span class="progress-text" id="progressCounter">0 / 37</span></div>
+        <div>⏱️ <span id="timer">0</span> ثانية</div>
+    </div>
+    
+    <div id="resultsContainer" style="min-height: 200px;">
+        <div id="resultsGrid" class="results-grid"></div>
+        <div id="globalError" style="text-align:center; margin-top:20px;"></div>
+    </div>
+    <footer>
+        ⚡ يعتمد على Amazon Autocomplete API (JSONP) | يتم إرسال الطلبات بتأخير 150ms لتجنب الحظر | اضغط على أي كلمة لفتح نتائج Amazon مباشرة
+    </footer>
+</div>
+
+<script>
+$(function() {
+    // ------------------- عناصر DOM -------------------
+    const $input = $('#input');
+    const $generateBtn = $('#generateBtn');
+    const $stopBtn = $('#stopBtn');
+    const $progressArea = $('#progressArea');
+    const $statusMsg = $('#statusMsg');
+    const $progressCounter = $('#progressCounter');
+    const $timerSpan = $('#timer');
+    const $resultsGrid = $('#resultsGrid');
+    const $globalError = $('#globalError');
+    
+    // ------------------- المتغيرات -------------------
+    let abortFlag = false;          // لإيقاف العملية
+    let startTime = 0;
+    let timerInterval = null;
+    let currentRequestIndex = 0;
+    let totalRequests = 0;
+    let activeRequestsCount = 0;    // ليس مستخدمًا بكثرة في التسلسل لكن للدقة
+    
+    const ALPHABET = " abcdefghijklmnopqrstuvwxyz0123456789".split(""); // 37 حرف
+    const REQUEST_DELAY_MS = 150;    // تأخير بين كل طلب وآخر لتجنب الحظر
+    
+    // ------------------- دوال مساعدة -------------------
+    function clearResults() {
+        $resultsGrid.empty();
+        $globalError.empty();
+    }
+    
+    function startProgress() {
+        abortFlag = false;
+        startTime = Date.now();
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if (!abortFlag) {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                $timerSpan.text(elapsed);
+            }
+        }, 1000);
+        $progressArea.show();
+        $generateBtn.prop('disabled', true);
+        $stopBtn.prop('disabled', false);
+        $statusMsg.text('جاري التوليد...').removeClass('error');
+        $progressCounter.text(`0 / ${ALPHABET.length}`);
+        clearResults();
+    }
+    
+    function stopProgress(manualStop = true) {
+        abortFlag = true;
+        if (timerInterval) clearInterval(timerInterval);
+        $progressArea.hide();
+        $generateBtn.prop('disabled', false);
+        $stopBtn.prop('disabled', true);
+        if (manualStop) {
+            $statusMsg.text('تم الإيقاف يدويًا');
+            setTimeout(() => { if($statusMsg.text() === 'تم الإيقاف يدويًا') $statusMsg.text(''); }, 2000);
+        }
+    }
+    
+    function finishSuccess() {
+        if (timerInterval) clearInterval(timerInterval);
+        $progressArea.hide();
+        $generateBtn.prop('disabled', false);
+        $stopBtn.prop('disabled', true);
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        $statusMsg.text(`✅ اكتمل! ${elapsed} ثانية`);
+        setTimeout(() => {
+            if ($statusMsg.text().includes('اكتمل')) $statusMsg.text('');
+        }, 3000);
+    }
+    
+    // إنشاء بطاقة لكل حرف مسبقاً (هيكل فارغ) ثم تعبئتها لاحقاً
+    function buildCardStructure(letter, index) {
+        const cardId = `card_${index}`;
+        const displayLetter = letter === ' ' ? '(مسافة)' : letter;
+        const cardHtml = `
+            <div class="keyword-card" id="${cardId}" data-letter="${letter}">
+                <div class="card-header">
+                    <span>🔤 ${displayLetter}</span>
+                    <span class="badge-count" id="count_${index}">0</span>
+                </div>
+                <ul class="suggestions-list" id="list_${index}"></ul>
+            </div>
+        `;
+        $resultsGrid.append(cardHtml);
+        return { cardId, listId: `list_${index}`, countId: `count_${index}` };
+    }
+    
+    // تحديث العداد في البطاقة
+    function updateCount(cardIndex, newCount) {
+        $(`#count_${cardIndex}`).text(newCount);
+    }
+    
+    // طلب JSONP لحرف معين
+    function fetchSuggestions(letter, cardIndex, searchInput) {
+        return new Promise((resolve, reject) => {
+            if (abortFlag) {
+                reject(new Error('Aborted'));
+                return;
+            }
+            
+            const searchText = searchInput + " " + letter;
+            const encodedSearch = encodeURIComponent(searchText);
+            const amazonUrl = `https://completion.amazon.com/search/complete?search-alias=aps&client=amazon-search-ui&mkt=1&q=${encodedSearch}&callback=?`;
+            
+            $.getJSON(amazonUrl)
+                .done((data) => {
+                    if (abortFlag) {
+                        reject(new Error('Aborted'));
+                        return;
+                    }
+                    const suggestions = data && data[1] ? data[1] : [];
+                    const $list = $(`#list_${cardIndex}`);
+                    if ($list.length) {
+                        $list.empty(); // تنظيف أي محتوى سابق (إن وجد)
+                        if (suggestions.length === 0) {
+                            $list.html('<li style="color:#aaa; padding:8px 16px;">⚠️ لا توجد اقتراحات</li>');
+                        } else {
+                            suggestions.forEach(item => {
+                                const encodedItem = encodeURIComponent(item);
+                                const link = `<li><a href="https://www.amazon.com/s/?field-keywords=${encodedItem}" target="_blank" rel="noopener">${escapeHtml(item)}</a></li>`;
+                                $list.append(link);
+                            });
+                        }
+                        updateCount(cardIndex, suggestions.length);
+                    }
+                    resolve({ letter, count: suggestions.length });
+                })
+                .fail((jqXHR, textStatus) => {
+                    if (abortFlag) reject(new Error('Aborted'));
+                    else {
+                        console.warn(`فشل الحرف ${letter}: ${textStatus}`);
+                        const $list = $(`#list_${cardIndex}`);
+                        if ($list.length) {
+                            $list.html('<li class="error-msg">❌ فشل الاتصال بـ Amazon</li>');
+                        }
+                        updateCount(cardIndex, 0);
+                        reject(new Error(`API error for ${letter}`));
+                    }
+                });
+        });
+    }
+    
+    // هروب من XSS
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+            return c;
+        });
+    }
+    
+    // الدالة الرئيسية التي تقوم بتوليد الكلمات بشكل تسلسلي مع تأخير
+    async function generateSequential() {
+        const keyword = $input.val().trim();
+        if (keyword === "") {
+            $globalError.html('<div style="background:#fff1f0; padding:12px; border-radius:30px;">❌ الرجاء إدخال كلمة رئيسية للبحث</div>');
+            return;
+        }
+        $globalError.empty();
+        
+        // تهيئة الواجهة
+        startProgress();
+        $resultsGrid.empty();
+        
+        // بناء البطاقات لكل حرف (37 بطاقة)
+        const cards = [];
+        for (let i = 0; i < ALPHABET.length; i++) {
+            cards.push(buildCardStructure(ALPHABET[i], i));
+        }
+        
+        let completed = 0;
+        const total = ALPHABET.length;
+        
+        // معالجة الطلبات بشكل تسلسلي
+        for (let i = 0; i < total; i++) {
+            if (abortFlag) {
+                break;
+            }
+            const letter = ALPHABET[i];
+            $progressCounter.text(`${completed} / ${total}`);
+            $statusMsg.text(`جاري البحث عن "${keyword} ${letter === ' ' ? '(مسافة)' : letter}" ...`);
+            
+            try {
+                await fetchSuggestions(letter, i, keyword);
+            } catch (err) {
+                if (err.message !== 'Aborted') {
+                    console.error(err);
+                    // لا نوقف العملية بسبب فشل حرف واحد
+                }
+            }
+            completed++;
+            $progressCounter.text(`${completed} / ${total}`);
+            
+            // تأخير بين الطلبات إلا إذا كان آخر حرف أو تم الإيقاف
+            if (!abortFlag && i < total - 1) {
+                await new Promise(r => setTimeout(r, REQUEST_DELAY_MS));
+            }
+        }
+        
+        if (!abortFlag) {
+            finishSuccess();
+        } else {
+            stopProgress(true);
+        }
+    }
+    
+    // أحداث الأزرار
+    $generateBtn.on('click', function() {
+        if ($generateBtn.prop('disabled')) return;
+        generateSequential();
+    });
+    
+    $stopBtn.on('click', function() {
+        if (!$stopBtn.prop('disabled')) {
+            abortFlag = true;
+            stopProgress(true);
+        }
+    });
+    
+    // بداية سريعة (اختياري) عرض عينة عند تحميل الصفحة
+    setTimeout(() => {
+        if ($resultsGrid.children().length === 0) {
+            $globalError.html('<div style="color:#6c757d;">💡 أدخل كلمة (مثل t shirt) واضغط Generate Keywords</div>');
+        }
+    }, 100);
+});
+</script>
+</body>
+</html>
