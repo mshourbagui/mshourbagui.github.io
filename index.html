@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="ltr">
 <head>
@@ -147,10 +146,6 @@
             padding: 4px 10px;
             border-radius: 30px;
         }
-        #resultsCount {
-            font-weight: bold;
-            color: #ff5500;
-        }
         .results-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -241,12 +236,12 @@
 <body>
 <div class="container">
     <h1>🔍 Amazon Keyword Search Generator</h1>
-    <div class="sub">✨ احصل على اقتراحات الكلمات من Amazon نفسها + رابط مباشر لنتائج البحث لمراقبة المنافسين</div>
+    <div class="sub">✨ اقتراحات مباشرة من Amazon + رابط لنتائج البحث لمراقبة المنافسين (يعمل عبر CORS Proxy)</div>
     
     <div class="search-area">
         <div class="input-group">
-            <label>📌 الكلمة الرئيسية (مثال: t shirt, yoga mat, baby toy)</label>
-            <input type="text" id="input" placeholder="مثال: t shirt" value="t shirt">
+            <label>📌 الكلمة الرئيسية (مثال: weight loss, t shirt, yoga mat)</label>
+            <input type="text" id="input" placeholder="مثال: weight loss" value="weight loss">
         </div>
         <div class="actions">
             <button id="generateBtn">🚀 Generate Keywords</button>
@@ -265,7 +260,7 @@
         <div id="globalError" style="text-align:center; margin-top:20px;"></div>
     </div>
     <footer>
-        ⚡ يعتمد على Amazon Autocomplete API (JSONP) | يتم إرسال الطلبات بتأخير 150ms لتجنب الحظر | اضغط على أي كلمة لفتح نتائج Amazon مباشرة
+        ⚡ يستخدم AllOrigins proxy لتجنب حظر CORS | طلبات متسلسلة بتأخير 150ms | اضغط على أي كلمة لفتح نتائج Amazon مباشرة
     </footer>
 </div>
 
@@ -283,15 +278,12 @@ $(function() {
     const $globalError = $('#globalError');
     
     // ------------------- المتغيرات -------------------
-    let abortFlag = false;          // لإيقاف العملية
+    let abortFlag = false;
     let startTime = 0;
     let timerInterval = null;
-    let currentRequestIndex = 0;
-    let totalRequests = 0;
-    let activeRequestsCount = 0;    // ليس مستخدمًا بكثرة في التسلسل لكن للدقة
     
     const ALPHABET = " abcdefghijklmnopqrstuvwxyz0123456789".split(""); // 37 حرف
-    const REQUEST_DELAY_MS = 150;    // تأخير بين كل طلب وآخر لتجنب الحظر
+    const REQUEST_DELAY_MS = 150;    // تأخير بين كل طلب وآخر
     
     // ------------------- دوال مساعدة -------------------
     function clearResults() {
@@ -341,7 +333,7 @@ $(function() {
         }, 3000);
     }
     
-    // إنشاء بطاقة لكل حرف مسبقاً (هيكل فارغ) ثم تعبئتها لاحقاً
+    // إنشاء بطاقة لكل حرف
     function buildCardStructure(letter, index) {
         const cardId = `card_${index}`;
         const displayLetter = letter === ' ' ? '(مسافة)' : letter;
@@ -358,12 +350,11 @@ $(function() {
         return { cardId, listId: `list_${index}`, countId: `count_${index}` };
     }
     
-    // تحديث العداد في البطاقة
     function updateCount(cardIndex, newCount) {
         $(`#count_${cardIndex}`).text(newCount);
     }
     
-    // طلب JSONP لحرف معين
+    // التعديل الأساسي: استخدام AllOrigins proxy بدلاً من الاتصال المباشر
     function fetchSuggestions(letter, cardIndex, searchInput) {
         return new Promise((resolve, reject) => {
             if (abortFlag) {
@@ -373,18 +364,26 @@ $(function() {
             
             const searchText = searchInput + " " + letter;
             const encodedSearch = encodeURIComponent(searchText);
-            const amazonUrl = `https://completion.amazon.com/search/complete?search-alias=aps&client=amazon-search-ui&mkt=1&q=${encodedSearch}&callback=?`;
+            // الرابط الأصلي لـ Amazon (بدون callback لأننا سنمرره عبر proxy)
+            const targetUrl = `https://completion.amazon.com/search/complete?search-alias=aps&client=amazon-search-ui&mkt=1&q=${encodedSearch}`;
+            // استخدام AllOrigins كـ CORS proxy
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
             
-            $.getJSON(amazonUrl)
-                .done((data) => {
+            $.ajax({
+                url: proxyUrl,
+                type: 'GET',
+                dataType: 'json',
+                timeout: 10000,  // 10 ثوانٍ مهلة
+                success: function(data) {
                     if (abortFlag) {
                         reject(new Error('Aborted'));
                         return;
                     }
-                    const suggestions = data && data[1] ? data[1] : [];
+                    // Amazon ترجع مصفوفة: [query, [suggestions...]]
+                    const suggestions = (data && Array.isArray(data) && data[1]) ? data[1] : [];
                     const $list = $(`#list_${cardIndex}`);
                     if ($list.length) {
-                        $list.empty(); // تنظيف أي محتوى سابق (إن وجد)
+                        $list.empty();
                         if (suggestions.length === 0) {
                             $list.html('<li style="color:#aaa; padding:8px 16px;">⚠️ لا توجد اقتراحات</li>');
                         } else {
@@ -397,35 +396,34 @@ $(function() {
                         updateCount(cardIndex, suggestions.length);
                     }
                     resolve({ letter, count: suggestions.length });
-                })
-                .fail((jqXHR, textStatus) => {
-                    if (abortFlag) reject(new Error('Aborted'));
-                    else {
-                        console.warn(`فشل الحرف ${letter}: ${textStatus}`);
-                        const $list = $(`#list_${cardIndex}`);
-                        if ($list.length) {
-                            $list.html('<li class="error-msg">❌ فشل الاتصال بـ Amazon</li>');
-                        }
-                        updateCount(cardIndex, 0);
-                        reject(new Error(`API error for ${letter}`));
+                },
+                error: function(xhr, status, err) {
+                    if (abortFlag) {
+                        reject(new Error('Aborted'));
+                        return;
                     }
-                });
+                    console.warn(`فشل الحرف ${letter}: ${status} - ${err}`);
+                    const $list = $(`#list_${cardIndex}`);
+                    if ($list.length) {
+                        $list.html('<li class="error-msg">❌ فشل الاتصال (proxy/Amazon)</li>');
+                    }
+                    updateCount(cardIndex, 0);
+                    reject(new Error(`Proxy failed for ${letter}`));
+                }
+            });
         });
     }
     
-    // هروب من XSS
     function escapeHtml(str) {
         return str.replace(/[&<>]/g, function(m) {
             if (m === '&') return '&amp;';
             if (m === '<') return '&lt;';
             if (m === '>') return '&gt;';
             return m;
-        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
-            return c;
         });
     }
     
-    // الدالة الرئيسية التي تقوم بتوليد الكلمات بشكل تسلسلي مع تأخير
+    // الدالة الرئيسية التسلسلية
     async function generateSequential() {
         const keyword = $input.val().trim();
         if (keyword === "") {
@@ -434,11 +432,9 @@ $(function() {
         }
         $globalError.empty();
         
-        // تهيئة الواجهة
         startProgress();
         $resultsGrid.empty();
         
-        // بناء البطاقات لكل حرف (37 بطاقة)
         const cards = [];
         for (let i = 0; i < ALPHABET.length; i++) {
             cards.push(buildCardStructure(ALPHABET[i], i));
@@ -447,11 +443,8 @@ $(function() {
         let completed = 0;
         const total = ALPHABET.length;
         
-        // معالجة الطلبات بشكل تسلسلي
         for (let i = 0; i < total; i++) {
-            if (abortFlag) {
-                break;
-            }
+            if (abortFlag) break;
             const letter = ALPHABET[i];
             $progressCounter.text(`${completed} / ${total}`);
             $statusMsg.text(`جاري البحث عن "${keyword} ${letter === ' ' ? '(مسافة)' : letter}" ...`);
@@ -461,13 +454,11 @@ $(function() {
             } catch (err) {
                 if (err.message !== 'Aborted') {
                     console.error(err);
-                    // لا نوقف العملية بسبب فشل حرف واحد
                 }
             }
             completed++;
             $progressCounter.text(`${completed} / ${total}`);
             
-            // تأخير بين الطلبات إلا إذا كان آخر حرف أو تم الإيقاف
             if (!abortFlag && i < total - 1) {
                 await new Promise(r => setTimeout(r, REQUEST_DELAY_MS));
             }
@@ -480,7 +471,7 @@ $(function() {
         }
     }
     
-    // أحداث الأزرار
+    // ربط الأزرار
     $generateBtn.on('click', function() {
         if ($generateBtn.prop('disabled')) return;
         generateSequential();
@@ -493,10 +484,10 @@ $(function() {
         }
     });
     
-    // بداية سريعة (اختياري) عرض عينة عند تحميل الصفحة
+    // رسالة ترحيب أولية
     setTimeout(() => {
         if ($resultsGrid.children().length === 0) {
-            $globalError.html('<div style="color:#6c757d;">💡 أدخل كلمة (مثل t shirt) واضغط Generate Keywords</div>');
+            $globalError.html('<div style="color:#6c757d;">💡 أدخل كلمة (مثل weight loss) واضغط Generate Keywords</div>');
         }
     }, 100);
 });
